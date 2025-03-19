@@ -7,6 +7,16 @@ const fileName = "GRI_2017_2020.csv"
 const delimiter = ";"
 //==============
 
+/* 
+
+    Make a folder where you can just place a csv file in and the script will automatically get it's name and read through the file to find the delimiter
+
+*/
+
+
+
+
+
 // Contains the data from the csv file
 const results = []
 
@@ -14,7 +24,7 @@ const multiDownload = async (dataset, field = "Pdf_URL") => {
     // Stores all the downloads as promises, this allows us to await them later
     const promises = []
 
-    //Goes through every row in the dataset
+    // Goes through every row in the dataset
     dataset.forEach(async (data, index) => {
         // index < 10 is to limit the dataset
         if(index < 10){
