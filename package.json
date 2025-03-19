@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "csv-parser": "^3.2.0",
+    "express": "^4.21.2",
+    "xml-reader": "^2.4.3"
+  },
+  "scripts": {
+    "read": "node reader.js"
+  }
+}
