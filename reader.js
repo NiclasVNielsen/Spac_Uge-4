@@ -1,6 +1,6 @@
 const fs = require("fs");
 const csvParser = require("csv-parser");
-const { downloadFile } = require("./helpers")
+const { downloadFile, formatResults, writeCSV } = require("./helpers")
 
 // csv settings
 const fileName = "GRI_2017_2020.csv"
@@ -18,24 +18,40 @@ const delimiter = ";"
 
 
 // Contains the data from the csv file
-const results = []
+const data = []
 
-const multiDownload = async (dataset, field = "Pdf_URL") => {
+// Contains the data of all the BRnums and if they where downloaded or not
+const endResSuccededDownloads = []
+const endResFailedDownloads = []
+
+
+const multiDownload = async (datasets, field = "Pdf_URL") => {
     // Stores all the downloads as promises, this allows us to await them later
     const promises = []
 
-    // Goes through every row in the dataset
-    dataset.forEach(async (data, index) => {
-        // index < 10 is to limit the dataset
+    // Goes through every row in the datasets
+    datasets.forEach(async (dataset, index) => {
+        // index < 10 is to limit the datasetset
         if(index < 10){
-            promises.push(new Promise(resolve => {
-                // js is being stupid so have to take BRnum by data[key[0]] instead of data['BRnum'] - key[0] === 'BRnum' = true, but for some reason 'BRnum' fails
-                const keys = Object.keys(data);
+            promises.push(new Promise(async resolve => {
+                // js is being stupid so have to take BRnum by dataset[key[0]] instead of dataset['BRnum'] - key[0] === 'BRnum' = true, but for some reason 'BRnum' fails
+                const keys = Object.keys(dataset);
+                const BRnum = dataset[keys[0]]
 
-                // data[field] = url to download pdf, data[keys[0]] = BRnum that the file should be named after
-                const status = downloadFile(data[field], data[keys[0]])
+                // dataset[field] = url to download pdf, BRnum = what the filename should be
+                const status = await downloadFile(dataset[field], BRnum)
 
-                // gives 200 or 404 depending on wheather it found something or not
+                // Sorts the failed and success statuses of the downloads
+                if(status == 200 && endResFailedDownloads.indexOf(BRnum) == -1){
+                    endResSuccededDownloads.push(BRnum)
+                }else if (status == 200){
+                    endResSuccededDownloads.push(BRnum)
+                    endResFailedDownloads.filter(e => e != BRnum) 
+                }else if (endResFailedDownloads.indexOf(BRnum) == -1){
+                    endResFailedDownloads.push(BRnum)
+                }
+
+                // Gives 200 or 404 depending on wheather it found something or not
                 resolve(status)
             }))
         }
@@ -50,7 +66,7 @@ const filterOutSuccededDownloads = (downloadReults) => {
     // If the pdf file could not be found, push the row into the array where we will try the secondary source
     downloadReults.forEach((result, index) => {
         if(result == 404){
-            failedDownloads.push(results[index])
+            failedDownloads.push(data[index])
         }
     })
     // Returns array of rows that failed to download
@@ -62,13 +78,13 @@ fs.createReadStream("./" + fileName)
 .pipe(csvParser({
     separator: delimiter
 }))
-.on("data", (data) => {
+.on("data", (result) => {
     // Extract the Data from the csv file
-    results.push(data);
+    data.push(result);
 })
 .on("end", async () => {
     // Tries to download all the pdf files through the primary source
-    const firstPromises = await multiDownload(results, "Pdf_URL")
+    const firstPromises = await multiDownload(data, "Pdf_URL")
 
     // Waits for all the downloads to have a final response
     Promise.all(firstPromises)
@@ -82,7 +98,9 @@ fs.createReadStream("./" + fileName)
         Promise.all(secondPromises)
         .then(async (result) => {
             // status all of all the second downloads
-            console.log(result)
+            const finalResults = formatResults(endResSuccededDownloads, endResFailedDownloads)
+
+            writeCSV(finalResults)
         })
 
     })

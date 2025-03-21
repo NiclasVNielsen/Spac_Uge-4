@@ -21,7 +21,52 @@ module.exports.downloadFile = (async (url, fileName) => {
         return 200
     } catch (error) {
         // Ooof.. the download didn't work
-        console.error("Couldn't Download " + fileName + " at " + url)
+         //console.error("Couldn't Download " + fileName + " at " + url)
         return 404
     }
 });
+
+
+// Simple 2D array sort function
+// source: https://stackoverflow.com/questions/16096872/how-to-sort-2-dimensional-array-by-column-value
+function sortFunction(a, b) {
+    if (a[0] === b[0]) {
+        return 0;
+    }
+    else {
+        return (a[0] < b[0]) ? -1 : 1;
+    }
+}
+
+
+// Formats the output report file
+module.exports.formatResults = ((succededDownloads, failedDownloads) => {
+    const result = []
+
+    for(let i = 0; i < succededDownloads.length; i++){
+        result.push([succededDownloads[i], "yes"])
+    }
+    
+    for(let i = 0; i < failedDownloads.length; i++){
+        result.push([failedDownloads[i], "no"])
+    }
+
+    result.sort(sortFunction)
+
+    return result
+})
+
+
+module.exports.writeCSV = (rawData) => {
+    let data = "BRnum;downloaded?;\n"
+
+    rawData.forEach(e => {
+        data += `${e[0]};${e[1]};\n`
+    })
+
+    // Write the file
+    // source: https://www.geeksforgeeks.org/node-js-fs-writefile-method/
+    fs.writeFile("./result/results.csv", data, (err) => {
+        if (err) console.log(err);
+    });
+}
