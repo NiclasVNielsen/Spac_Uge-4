@@ -2,18 +2,13 @@ const fs = require("fs");
 const csvParser = require("csv-parser");
 const { downloadFile, formatResults, writeCSV } = require("./helpers")
 
-// csv settings
-//==============
 
-/* 
-
-    Make a folder where you can just place a csv file in and the script will automatically get it's name and read through the file to find the delimiter
-
-*/
+// Dynamicly finds the file name
 const findFile = async () => {
     const fileName = await new Promise (async (res, rej) => {
         try {
             fs.readdir("../input", async (err, files) => {
+                // Checks that there is only one file in the folder
                 if(files.length == 1){
                     res(files[0])
                 }
@@ -26,14 +21,19 @@ const findFile = async () => {
     return fileName
 }
 
+
+// Dynamicly finds the csv delimiter
 const findDelimiter = async (fileName) => {
     const delimiter = await new Promise (async (res, rej) => {
         try {
             let del = undefined
+            // Reads through first 50 characters of the file
             fs.readFile("../input/" + fileName, 'utf8', (err, data) => {
                 for(let i = 0; i < 50; i++){
+                    // If it finds a "," the delimiter is ,
                     if(data[i] == ",")
                         del = ","
+                    // If it finds a ";" the delimiter is ;
                     if(data[i] == ";")
                         del = ";"
                 }
@@ -104,6 +104,7 @@ const filterOutSuccededDownloads = (downloadReults) => {
 }
 
 
+// Starts the program, this needs to be in a function so it can run async
 const start = async () => {
     // Dynamicly finds the file and the delimiter
     const fileName = await findFile()

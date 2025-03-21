@@ -1,5 +1,4 @@
 const fs = require("fs");
-const { mkdir } = require("fs/promises");
 const { Readable } = require('stream');
 const { finished } = require('stream/promises');
 const path = require("path");
@@ -21,7 +20,7 @@ module.exports.downloadFile = (async (url, fileName) => {
         return 200
     } catch (error) {
         // Ooof.. the download didn't work
-         //console.error("Couldn't Download " + fileName + " at " + url)
+        console.error("Couldn't Download " + fileName + " at " + url)
         return 404
     }
 });
@@ -39,27 +38,33 @@ function sortFunction(a, b) {
 }
 
 
-// Formats the output report file
+// Combines the failed and the success arrays into one
 module.exports.formatResults = ((succededDownloads, failedDownloads) => {
     const result = []
 
+    // Adds the successful downloads
     for(let i = 0; i < succededDownloads.length; i++){
         result.push([succededDownloads[i], "yes"])
     }
     
+    // Adds the failed downloads
     for(let i = 0; i < failedDownloads.length; i++){
         result.push([failedDownloads[i], "no"])
     }
 
+    // Sorts them by BRnum
     result.sort(sortFunction)
 
     return result
 })
 
 
+// Creates the csv status file
 module.exports.writeCSV = (rawData) => {
+    // Sets the header of the csv file
     let data = "BRnum;downloaded?;\n"
 
+    // Writes out every download status on a line
     rawData.forEach(e => {
         data += `${e[0]};${e[1]};\n`
     })
