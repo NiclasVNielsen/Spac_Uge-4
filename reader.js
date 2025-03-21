@@ -3,8 +3,6 @@ const csvParser = require("csv-parser");
 const { downloadFile, formatResults, writeCSV } = require("./helpers")
 
 // csv settings
-const fileName = "GRI_2017_2020.csv"
-const delimiter = ";"
 //==============
 
 /* 
@@ -12,15 +10,47 @@ const delimiter = ";"
     Make a folder where you can just place a csv file in and the script will automatically get it's name and read through the file to find the delimiter
 
 */
+const findFile = async () => {
+    const fileName = await new Promise (async (res, rej) => {
+        try {
+            fs.readdir("../input", async (err, files) => {
+                if(files.length == 1){
+                    res(files[0])
+                }
+            })
+        } catch (error) {
+            console.error("There has to be exactly 1 file in the input folder")
+            res("")
+        }
+    }) 
+    return fileName
+}
 
-
-
+const findDelimiter = async (fileName) => {
+    const delimiter = await new Promise (async (res, rej) => {
+        try {
+            let del = undefined
+            fs.readFile("../input/" + fileName, 'utf8', (err, data) => {
+                for(let i = 0; i < 50; i++){
+                    if(data[i] == ",")
+                        del = ","
+                    if(data[i] == ";")
+                        del = ";"
+                }
+                res(del)
+            })
+        } catch (error) {
+            res(undefined)
+        }
+    }) 
+    return delimiter
+}
 
 
 // Contains the data from the csv file
 const data = []
 
-// Contains the data of all the BRnums and if they where downloaded or not
+// All BRnum's gets sorted into succeded or failed downlaod
 const endResSuccededDownloads = []
 const endResFailedDownloads = []
 
@@ -74,34 +104,48 @@ const filterOutSuccededDownloads = (downloadReults) => {
 }
 
 
-fs.createReadStream("./" + fileName)
-.pipe(csvParser({
-    separator: delimiter
-}))
-.on("data", (result) => {
-    // Extract the Data from the csv file
-    data.push(result);
-})
-.on("end", async () => {
-    // Tries to download all the pdf files through the primary source
-    const firstPromises = await multiDownload(data, "Pdf_URL")
+const start = async () => {
+    // Dynamicly finds the file and the delimiter
+    const fileName = await findFile()
+    const delimiter = await findDelimiter(fileName)
 
-    // Waits for all the downloads to have a final response
-    Promise.all(firstPromises)
-    .then(async (result) => {
-        // Creates a new array with all the failed downloads
-        const failedDownloads = filterOutSuccededDownloads(result)
+    if(!fileName)  
+        return
 
-        // Tries to download all the failed ones from their secondary source
-        const secondPromises = await multiDownload(failedDownloads, "Report Html Address")
+    if(!delimiter)  
+        return
 
-        Promise.all(secondPromises)
-        .then(async (result) => {
-            // status all of all the second downloads
-            const finalResults = formatResults(endResSuccededDownloads, endResFailedDownloads)
-
-            writeCSV(finalResults)
-        })
-
+    fs.createReadStream("../input/" + fileName)
+    .pipe(csvParser({
+        separator: delimiter
+    }))
+    .on("data", (result) => {
+        // Extract the Data from the csv file
+        data.push(result);
     })
-});
+    .on("end", async () => {
+        // Tries to download all the pdf files through the primary source
+        const firstPromises = await multiDownload(data, "Pdf_URL")
+    
+        // Waits for all the downloads to have a final response
+        Promise.all(firstPromises)
+        .then(async (result) => {
+            // Creates a new array with all the failed downloads
+            const failedDownloads = filterOutSuccededDownloads(result)
+    
+            // Tries to download all the failed ones from their secondary source
+            const secondPromises = await multiDownload(failedDownloads, "Report Html Address")
+    
+            Promise.all(secondPromises)
+            .then(async (result) => {
+                // status all of all the second downloads
+                const finalResults = formatResults(endResSuccededDownloads, endResFailedDownloads)
+    
+                writeCSV(finalResults)
+            })
+    
+        })
+    })
+}
+
+start()

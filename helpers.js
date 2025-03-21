@@ -8,14 +8,14 @@ const path = require("path");
 module.exports.downloadFile = (async (url, fileName) => {
     try {
         // Tries to fetch the file
-        const res = await fetch(url);
+        const res = await fetch(url)
 
         // Determinates where the file is downloaded and it's name
-        /* const destination = path.resolve("./files", fileName + ".pdf");
+        const destination = path.resolve("../PDFs", fileName + ".pdf")
         
         // Ehhhmm?? idk what this does, my guess is that it opens a stream for the file to be written
-        const fileStream = fs.createWriteStream(destination, { flags: 'wx' });
-        await finished(Readable.fromWeb(res.body).pipe(fileStream)); */
+        const fileStream = fs.createWriteStream(destination, { flags: 'wx' })
+        await finished(Readable.fromWeb(res.body).pipe(fileStream))
 
         // Wohooo! the file was downloaded
         return 200
@@ -66,7 +66,7 @@ module.exports.writeCSV = (rawData) => {
 
     // Write the file
     // source: https://www.geeksforgeeks.org/node-js-fs-writefile-method/
-    fs.writeFile("./result/results.csv", data, (err) => {
+    fs.writeFile("../downloadStatuses/statuses.csv", data, (err) => {
         if (err) console.log(err);
     });
 }
